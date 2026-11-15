@@ -1,0 +1,26 @@
+{% extends 'app_base.html' %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block app_content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card-app">
+      <h5 class="fw-bold mb-3"><i class="bi bi-person-badge text-gradient"></i> {{ title }}</h5>
+      {% if title == 'Add User' %}
+      <p class="muted small">We'll email the username and a secure, expiring password setup link to the address provided. Passwords are never sent by email.</p>
+      {% endif %}
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% include 'partials/_form.html' with form=form %}
+        <div class="d-flex gap-2">
+          <button class="btn-app" type="submit">
+            <i class="bi bi-check2"></i>
+            {% if title == 'Add User' %}Create User &amp; Send Setup Email{% else %}Save User{% endif %}
+          </button>
+          <a href="{% url 'manage_panel:user_list' %}" class="btn-ghost"><i class="bi bi-arrow-left"></i> Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

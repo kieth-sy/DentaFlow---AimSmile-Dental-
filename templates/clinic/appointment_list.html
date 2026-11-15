@@ -1,0 +1,660 @@
+{% extends 'app_base.html' %}
+{% load clinic_extras static %}
+
+{% block head_extra %}
+<link href="{% static 'css/pages/clinic/appointment_list.css' %}?v=1" rel="stylesheet">
+{% endblock %}
+
+{% block page_title %}Appointments{% endblock %}
+{% block page_subtitle %}Manage your clinic schedule.{% endblock %}
+
+{% block app_content %}
+<!-- Page Header -->
+<div class="nm-header">
+  <div>
+    <h1 class="nm-title">Appointments</h1>
+    <div class="nm-subtitle">Manage your clinic schedule.</div>
+  </div>
+  <a href="{% url 'clinic:appointment_create' %}" class="btn-primary-blue">
+    <i class="bi bi-plus-lg"></i> New Appointment
+  </a>
+</div>
+
+<!-- Top Section: Weekly Calendar Grid (Col 8) + Appointment Details (Col 4) -->
+<div class="row g-4 mb-4">
+  <!-- Weekly Calendar Column -->
+  <div class="col-xl-8">
+    <div class="nm-cal-card h-100">
+      <div class="nm-cal-top">
+        <div class="nm-cal-nav">
+          <button class="nm-nav-circle-btn" type="button" id="calPrevWeek" title="Previous Week"><i class="bi bi-chevron-left"></i></button>
+          <button class="nm-nav-circle-btn" type="button" id="calNextWeek" title="Next Week"><i class="bi bi-chevron-right"></i></button>
+          <span class="nm-cal-range-text" id="calRangeLabel">Loading calendar...</span>
+          <button class="nm-cal-today-btn" type="button" id="calTodayBtn">Today</button>
+        </div>
+
+        <div class="nm-segmented">
+          <button class="nm-segment-item" type="button">Day</button>
+          <button class="nm-segment-item active" type="button">Week</button>
+          <button class="nm-segment-item" type="button">Month</button>
+        </div>
+      </div>
+
+      <!-- Calendar Table Grid -->
+      <div class="nm-cal-table-wrap">
+        <table class="nm-cal-table" id="appointmentCalendar" data-today="{{ calendar_today }}" style="visibility:hidden;">
+          <thead id="calendarHead">
+            <tr>
+              <th class="th-time">GMT+8</th>
+              <th class="th-highlight">
+                <span class="th-day-lbl">Sun</span>
+                <span class="th-day-num">18</span>
+              </th>
+              <th>
+                <span class="th-day-lbl">Mon</span>
+                <span class="th-day-num">19</span>
+              </th>
+              <th>
+                <span class="th-day-lbl">Tue</span>
+                <span class="th-day-num">20</span>
+              </th>
+              <th>
+                <span class="th-day-lbl">Wed</span>
+                <span class="th-day-num">21</span>
+              </th>
+              <th>
+                <span class="th-day-lbl">Thu</span>
+                <span class="th-day-num">22</span>
+              </th>
+              <th>
+                <span class="th-day-lbl">Fri</span>
+                <span class="th-day-num">23</span>
+              </th>
+              <th>
+                <span class="th-day-lbl">Sat</span>
+                <span class="th-day-num">24</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="calendarBody">
+            <!-- 8 AM -->
+            <tr>
+              <td class="td-time-lbl">8 AM</td>
+              <td>
+                <div class="cal-appt-chip chip-selected" data-name="Juan Dela Cruz" data-service="Consultation" data-date="Sunday, October 18, 2026" data-time="08:00 AM" data-dentist="Dr. Ana Santos" data-phone="0917 123 4567" data-status="Checked In">
+                  <span class="chip-time">08:00</span>
+                  <span class="chip-service">Consultation</span>
+                </div>
+              </td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td>
+                <div class="cal-appt-chip chip-green" data-name="Maria Santos" data-service="Cleaning" data-date="Friday, October 23, 2026" data-time="08:00 AM" data-dentist="Dr. Ana Santos" data-phone="0918 555 4321" data-status="Confirmed">
+                  <span class="chip-time">08:00</span>
+                  <span class="chip-service">Cleaning</span>
+                </div>
+              </td>
+              <td></td>
+            </tr>
+
+            <!-- 9 AM -->
+            <tr>
+              <td class="td-time-lbl">9 AM</td>
+              <td>
+                {% if first_appointment %}
+                <div class="cal-appt-chip chip-blue" data-name="{{ first_appointment.patient.display_name }}" data-service="{{ first_appointment.service.name|default:first_appointment.reason|default:'Emergency Consultation' }}" data-date="{{ first_appointment.date|date:'l, F j, Y' }}" data-time="{{ first_appointment.time|time:'h:i A' }}" data-dentist="{% if first_appointment.dentist %}Dr. {{ first_appointment.dentist.display_name }}{% else %}Unassigned{% endif %}" data-phone="{{ first_appointment.patient.phone|default:'095143653997' }}" data-status="{{ first_appointment.get_status_display }}" data-url="{% url 'clinic:appointment_detail' first_appointment.pk %}">
+                  <span class="chip-time">{{ first_appointment.time|time:'H:i' }}</span>
+                  <span class="chip-service">{{ first_appointment.service.name|default:first_appointment.reason|default:'Consultation' }}</span>
+                </div>
+                {% endif %}
+              </td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td>
+                <div class="cal-appt-chip chip-pink" data-name="Clara Reyes" data-service="Filling" data-date="Friday, October 23, 2026" data-time="09:30 AM" data-dentist="Dr. Ana Santos" data-phone="0922 444 8888" data-status="Confirmed">
+                  <span class="chip-time">09:30</span>
+                  <span class="chip-service">Filling</span>
+                </div>
+              </td>
+              <td></td>
+            </tr>
+
+            <!-- 10 AM -->
+            <tr>
+              <td class="td-time-lbl">10 AM</td>
+              <td></td>
+              <td>
+                <div class="cal-appt-chip chip-amber" data-name="Pedro Penduko" data-service="Filling" data-date="Monday, October 19, 2026" data-time="10:00 AM" data-dentist="Dr. Ana Santos" data-phone="0919 333 2222" data-status="Confirmed">
+                  <span class="chip-time">10:00</span>
+                  <span class="chip-service">Filling</span>
+                </div>
+              </td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+
+            <!-- 11 AM -->
+            <tr>
+              <td class="td-time-lbl">11 AM</td>
+              <td></td>
+              <td></td>
+              <td>
+                <div class="cal-appt-chip chip-purple" data-name="Liza Soberano" data-service="Consultation" data-date="Tuesday, October 20, 2026" data-time="11:00 AM" data-dentist="Dr. Ana Santos" data-phone="0917 888 9999" data-status="Confirmed">
+                  <span class="chip-time">11:00</span>
+                  <span class="chip-service">Consultation</span>
+                </div>
+              </td>
+              <td></td>
+              <td></td>
+              <td>
+                <div class="cal-appt-chip chip-blue" data-name="Carlos Garcia" data-service="Consultation" data-date="Friday, October 23, 2026" data-time="11:00 AM" data-dentist="Dr. Ana Santos" data-phone="0920 111 3333" data-status="Confirmed">
+                  <span class="chip-time">11:00</span>
+                  <span class="chip-service">Consultation</span>
+                </div>
+              </td>
+              <td></td>
+            </tr>
+
+            <!-- 12 PM -->
+            <tr>
+              <td class="td-time-lbl">12 PM</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+
+            <!-- 1 PM -->
+            <tr>
+              <td class="td-time-lbl">1 PM</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td>
+                <div class="cal-appt-chip chip-rose" data-name="Elena Gilbert" data-service="Extraction" data-date="Wednesday, October 21, 2026" data-time="01:00 PM" data-dentist="Dr. Ana Santos" data-phone="0918 777 6666" data-status="Confirmed">
+                  <span class="chip-time">13:00</span>
+                  <span class="chip-service">Extraction</span>
+                </div>
+              </td>
+              <td></td>
+              <td>
+                <div class="cal-appt-chip chip-orange" data-name="Marco Ramos" data-service="Extraction" data-date="Friday, October 23, 2026" data-time="01:00 PM" data-dentist="Dr. Ana Santos" data-phone="0927 666 5555" data-status="Confirmed">
+                  <span class="chip-time">13:00</span>
+                  <span class="chip-service">Extraction</span>
+                </div>
+              </td>
+              <td></td>
+            </tr>
+
+            <!-- 2 PM -->
+            <tr>
+              <td class="td-time-lbl">2 PM</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td>
+                <div class="cal-appt-chip chip-green" data-name="Sophia Loren" data-service="Braces" data-date="Friday, October 23, 2026" data-time="02:30 PM" data-dentist="Dr. Ana Santos" data-phone="0917 222 1111" data-status="Confirmed">
+                  <span class="chip-time">14:30</span>
+                  <span class="chip-service">Braces</span>
+                </div>
+              </td>
+              <td>
+                <div class="cal-appt-chip chip-teal" data-name="Gabriel Cruz" data-service="Cleaning" data-date="Saturday, October 24, 2026" data-time="02:00 PM" data-dentist="Dr. Ana Santos" data-phone="0928 999 0000" data-status="Confirmed">
+                  <span class="chip-time">14:00</span>
+                  <span class="chip-service">Cleaning</span>
+                </div>
+              </td>
+            </tr>
+
+            <!-- 3 PM -->
+            <tr>
+              <td class="td-time-lbl">3 PM</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="nm-cal-footer">
+        <div id="calendarAppointmentCount">Loading appointments...</div>
+        <div><span class="legend-dot"></span> Selected appointment</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Appointment Details Column -->
+  <div class="col-xl-4">
+    <div class="nm-details-card">
+      <div>
+        <div class="nm-details-top">
+          <span class="nm-details-heading">Appointment Details</span>
+          <span class="nm-badge badge-neutral" id="detailStatusBadge">No appointment</span>
+        </div>
+
+          <h3 class="nm-details-patient" id="detailPatientName">Select an appointment</h3>
+          <div class="nm-details-sub">Appointment details</div>
+
+          <div class="nm-service-pill" id="detailServiceTag">—</div>
+
+        <!-- Detail items -->
+        <div class="nm-info-row">
+          <i class="bi bi-calendar2"></i>
+          <div>
+            <div class="nm-info-val" id="detailDateTime">—</div>
+            <div class="nm-info-sub" id="detailTime">—</div>
+          </div>
+        </div>
+
+        <div class="nm-info-row">
+          <i class="bi bi-person"></i>
+          <div>
+            <div class="nm-info-val" id="detailDentist">—</div>
+            <div class="nm-info-sub">Attending dentist</div>
+          </div>
+        </div>
+
+        <div class="nm-info-row">
+          <i class="bi bi-telephone"></i>
+          <div>
+            <div class="nm-info-val" id="detailPhone">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="nm-details-actions">
+        <button class="btn-primary-blue flex-grow-1 justify-content-center" type="button" id="detailCheckInBtn" disabled>
+          <i class="bi bi-check2"></i> Checked In
+        </button>
+        <a href="#" class="btn-soft text-decoration-none px-3" style="border-radius:9999px; padding:.55rem 1.1rem;" id="detailViewBtn" aria-disabled="true">
+          View Details
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Section: Appointment Records Table Card -->
+<div class="nm-records-card mb-4">
+  <div class="nm-records-header">
+    <div>
+      <h5 class="nm-records-title">Appointment records</h5>
+      <div class="nm-records-subtitle">All dates</div>
+    </div>
+
+    <!-- Filter Form -->
+    <form method="get" class="nm-records-filter-wrap">
+      <div class="nm-inset-input-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" name="q" value="{{ search }}" class="nm-inset-input" placeholder="Search patient / reason...">
+      </div>
+
+      <select name="status" class="nm-inset-select" onchange="this.form.submit()">
+        <option value="">All statuses</option>
+        {% for val, lbl in statuses %}
+        <option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ lbl }}</option>
+        {% endfor %}
+      </select>
+
+      <button class="nm-circle-btn" type="submit" style="width:34px; height:34px;" title="Search">
+        <i class="bi bi-search"></i>
+      </button>
+
+      <span class="text-muted small ms-1">{{ appointments.count }} appointment{% if appointments.count != 1 %}s{% endif %}</span>
+    </form>
+  </div>
+
+  <!-- Records Table -->
+  <div class="table-responsive">
+    <table class="table-app">
+      <thead>
+        <tr>
+          <th>PATIENT</th>
+          <th>DENTIST</th>
+          <th>SERVICE</th>
+          <th>DATE & TIME</th>
+          <th>RISK</th>
+          <th>STATUS</th>
+          <th class="text-end">ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in appointments %}
+        <tr class="table-record-row" style="cursor:pointer;"
+            data-id="{{ a.pk }}"
+            data-name="{{ a.patient.display_name }}"
+            data-service="{{ a.service.name|default:a.reason|default:'Emergency Consultation' }}"
+            data-date="{{ a.date|date:'l, F j, Y' }}"
+            data-date-iso="{{ a.date|date:'Y-m-d' }}"
+            data-time="{{ a.time|time:'h:i A' }}"
+            data-time-24="{{ a.time|time:'H:i' }}"
+            data-dentist="{% if a.dentist %}Dr. {{ a.dentist.display_name }}{% else %}Unassigned{% endif %}"
+            data-phone="{{ a.patient.phone|default:'095143653997' }}"
+            data-status="{{ a.get_status_display }}"
+            data-url="{% url 'clinic:appointment_detail' a.pk %}">
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="avatar" style="width:34px;height:34px;border-radius:50%;font-size:.72rem;background:#e2edfa;color:#2e68db;font-weight:700;">
+                {{ a.patient.initials }}
+              </div>
+              <div>
+                <div class="fw-bold small text-dark" style="letter-spacing:.02em;">{{ a.patient.display_name|upper }}</div>
+                <div class="text-muted" style="font-size:.72rem;">{{ a.patient.phone|default:"095143653997" }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            {% if a.dentist %}
+              Dr. {{ a.dentist.display_name }}
+            {% else %}
+              <span class="text-muted">Unassigned</span>
+            {% endif %}
+          </td>
+          <td>{{ a.service.name|default:a.reason|default:"Emergency Consultation" }}</td>
+          <td>
+            <div class="fw-semibold text-dark">{{ a.date|date:"d M Y" }}</div>
+            <div class="text-muted" style="font-size:.72rem;">{{ a.time|time:"g:i A" }}</div>
+          </td>
+          <td>
+            <span class="nm-badge badge-blue">{{ a.no_show_risk|default:30 }}%</span>
+          </td>
+          <td>
+            <span class="nm-badge {% if a.status == 'confirmed' or a.status == 'completed' %}badge-green{% elif a.status == 'pending' %}badge-blue{% else %}badge-red{% endif %}">
+              {{ a.get_status_display }}
+            </span>
+          </td>
+          <td class="text-end">
+            <a href="{% url 'clinic:appointment_detail' a.pk %}" class="nm-table-action-btn" title="View Details">
+              <i class="bi bi-eye"></i>
+            </a>
+            {% if user.is_admin or user.is_dentist or user.is_receptionist %}
+            <a href="{% url 'clinic:appointment_update' a.pk %}" class="nm-table-action-btn" title="Edit Appointment">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url 'clinic:appointment_delete' a.pk %}" class="nm-table-action-btn btn-delete" title="Delete">
+              <i class="bi bi-trash3"></i>
+            </a>
+            {% else %}
+            <a href="{% url 'clinic:appointment_cancel' a.pk %}" class="nm-table-action-btn btn-delete" title="Cancel">
+              <i class="bi bi-x-lg"></i>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center py-4 text-muted">
+            <i class="bi bi-calendar-x fs-2 d-block mb-2 text-muted"></i>
+            No appointments found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Records Footer / Pagination -->
+  <div class="d-flex align-items-center justify-content-between mt-3 text-muted" style="font-size:.74rem;">
+    <div>Showing 1 of {{ appointments.count }} appointment{% if appointments.count != 1 %}s{% endif %}</div>
+    <div class="nm-pagination">
+      <span class="nm-page-btn"><i class="bi bi-chevron-left"></i></span>
+      <span class="nm-page-btn active">1</span>
+      <span class="nm-page-btn"><i class="bi bi-chevron-right"></i></span>
+    </div>
+  </div>
+</div>
+
+<!-- Page Footer -->
+<div class="nm-footer">
+  <div>AimSmile · Appointments</div>
+  <div>Clinic schedule · GMT+8</div>
+</div>
+{{ appointments_data|json_script:"appointments-data" }}
+{% endblock %}
+
+{% block app_scripts %}
+<script>
+  const calendar = document.getElementById('appointmentCalendar');
+  const appointments = JSON.parse(document.getElementById('appointments-data').textContent);
+  const calendarHead = document.getElementById('calendarHead');
+  const calendarBody = document.getElementById('calendarBody');
+  const today = parseLocalDate(calendar.dataset.today);
+  let weekStart = startOfWeek(today);
+  let selectedAppointmentId = null;
+
+  function parseLocalDate(value) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  function startOfWeek(date) {
+    const start = new Date(date);
+    start.setDate(start.getDate() - start.getDay());
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }
+
+  function dateKey(date) {
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0'),
+    ].join('-');
+  }
+
+  function displayDate(date, options) {
+    return new Intl.DateTimeFormat('en-US', options).format(date);
+  }
+
+  function setAppointmentDetails(data) {
+    const detailFields = {
+      detailPatientName: data.name,
+      detailServiceTag: data.service,
+      detailDateTime: data.date,
+      detailTime: data.time,
+      detailDentist: data.dentist,
+      detailPhone: data.phone,
+    };
+    Object.entries(detailFields).forEach(([id, value]) => {
+      document.getElementById(id).textContent = value || '—';
+    });
+
+    const badge = document.getElementById('detailStatusBadge');
+    badge.textContent = data.status || 'Unknown';
+    badge.className = 'nm-badge ' + (
+      ['Confirmed', 'Completed', 'Checked In'].includes(data.status) ? 'badge-green' :
+      data.status === 'Cancelled' ? 'badge-red' : 'badge-blue'
+    );
+
+    const viewBtn = document.getElementById('detailViewBtn');
+    viewBtn.href = data.url || '#';
+    viewBtn.setAttribute('aria-disabled', data.url ? 'false' : 'true');
+    document.getElementById('detailCheckInBtn').disabled = false;
+  }
+
+  function makeAppointmentChip(appointment) {
+    const chip = document.createElement('div');
+    const status = appointment.status.toLowerCase();
+    const colorClass = status === 'confirmed' ? 'chip-green' :
+      status === 'cancelled' ? 'chip-rose' :
+      status === 'completed' ? 'chip-teal' :
+      status === 'pending' ? 'chip-amber' : 'chip-blue';
+    chip.className = `cal-appt-chip ${colorClass}`;
+    chip.dataset.id = appointment.id;
+    chip.dataset.name = appointment.name;
+    chip.dataset.service = appointment.service;
+    chip.dataset.date = appointment.date_full;
+    chip.dataset.time = appointment.time;
+    chip.dataset.dentist = appointment.dentist;
+    chip.dataset.phone = appointment.phone;
+    chip.dataset.status = appointment.status;
+    chip.dataset.url = appointment.url;
+
+    const time = document.createElement('span');
+    time.className = 'chip-time';
+    time.textContent = appointment.time_24;
+    const service = document.createElement('span');
+    service.className = 'chip-service';
+    service.textContent = appointment.service;
+    chip.append(time, service);
+    return chip;
+  }
+
+  function renderCalendar(preferredAppointmentId) {
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(weekStart);
+      date.setDate(date.getDate() + index);
+      return date;
+    });
+    const first = days[0];
+    const last = days[6];
+    const firstMonth = displayDate(first, { month: 'short' });
+    const lastMonth = displayDate(last, { month: 'short' });
+    const label = first.getMonth() === last.getMonth() && first.getFullYear() === last.getFullYear()
+      ? `${firstMonth} ${first.getDate()} – ${last.getDate()}, ${last.getFullYear()}`
+      : `${firstMonth} ${first.getDate()} – ${lastMonth} ${last.getDate()}, ${last.getFullYear()}`;
+    document.getElementById('calRangeLabel').textContent = label;
+
+    const headRow = document.createElement('tr');
+    const timeHeading = document.createElement('th');
+    timeHeading.className = 'th-time';
+    timeHeading.textContent = 'GMT+8';
+    headRow.appendChild(timeHeading);
+    days.forEach(date => {
+      const heading = document.createElement('th');
+      if (dateKey(date) === dateKey(today)) heading.className = 'th-highlight';
+      const dayName = document.createElement('span');
+      dayName.className = 'th-day-lbl';
+      dayName.textContent = displayDate(date, { weekday: 'short' });
+      const dayNumber = document.createElement('span');
+      dayNumber.className = 'th-day-num';
+      dayNumber.textContent = date.getDate();
+      heading.append(dayName, dayNumber);
+      headRow.appendChild(heading);
+    });
+    calendarHead.replaceChildren(headRow);
+
+    const weekAppointments = appointments.filter(appointment =>
+      appointment.date_iso >= dateKey(first) && appointment.date_iso <= dateKey(last)
+    ).sort((a, b) => `${a.date_iso} ${a.time_24}`.localeCompare(`${b.date_iso} ${b.time_24}`));
+    const appointmentHours = weekAppointments
+      .map(appointment => Number(appointment.time_24.slice(0, 2)))
+      .filter(Number.isFinite);
+    const firstHour = Math.min(8, ...appointmentHours);
+    const lastHour = Math.max(19, ...appointmentHours);
+    const rows = [];
+
+    for (let hour = firstHour; hour <= lastHour; hour += 1) {
+      const row = document.createElement('tr');
+      const timeLabel = document.createElement('td');
+      timeLabel.className = 'td-time-lbl';
+      timeLabel.textContent = `${hour % 12 || 12} ${hour < 12 ? 'AM' : 'PM'}`;
+      row.appendChild(timeLabel);
+
+      days.forEach(date => {
+        const cell = document.createElement('td');
+        const key = dateKey(date);
+        weekAppointments
+          .filter(appointment =>
+            appointment.date_iso === key && Number(appointment.time_24.slice(0, 2)) === hour
+          )
+          .forEach(appointment => cell.appendChild(makeAppointmentChip(appointment)));
+        row.appendChild(cell);
+      });
+      rows.push(row);
+    }
+    calendarBody.replaceChildren(...rows);
+    document.getElementById('calendarAppointmentCount').textContent =
+      `${weekAppointments.length} appointment${weekAppointments.length === 1 ? '' : 's'} this week`;
+    calendar.style.visibility = 'visible';
+
+    const selected = weekAppointments.find(appointment =>
+      String(appointment.id) === String(preferredAppointmentId || selectedAppointmentId)
+    ) || weekAppointments[0];
+    if (selected) {
+      selectedAppointmentId = selected.id;
+      const chip = calendarBody.querySelector(`[data-id="${selected.id}"]`);
+      chip?.classList.add('chip-selected');
+      setAppointmentDetails(selected);
+    } else {
+      selectedAppointmentId = null;
+      document.getElementById('detailPatientName').textContent = 'No appointments this week';
+      document.getElementById('detailServiceTag').textContent = '—';
+      document.getElementById('detailDateTime').textContent = '—';
+      document.getElementById('detailTime').textContent = '—';
+      document.getElementById('detailDentist').textContent = '—';
+      document.getElementById('detailPhone').textContent = '—';
+      const badge = document.getElementById('detailStatusBadge');
+      badge.textContent = 'No appointment';
+      badge.className = 'nm-badge badge-neutral';
+      document.getElementById('detailViewBtn').href = '#';
+      document.getElementById('detailViewBtn').setAttribute('aria-disabled', 'true');
+      document.getElementById('detailCheckInBtn').disabled = true;
+    }
+  }
+
+  document.getElementById('calPrevWeek').addEventListener('click', () => {
+    weekStart.setDate(weekStart.getDate() - 7);
+    renderCalendar(null);
+  });
+  document.getElementById('calNextWeek').addEventListener('click', () => {
+    weekStart.setDate(weekStart.getDate() + 7);
+    renderCalendar(null);
+  });
+  document.getElementById('calTodayBtn').addEventListener('click', () => {
+    weekStart = startOfWeek(today);
+    renderCalendar(null);
+  });
+
+  calendarBody.addEventListener('click', event => {
+    const chip = event.target.closest('.cal-appt-chip');
+    if (!chip) return;
+    selectedAppointmentId = chip.dataset.id;
+    calendarBody.querySelectorAll('.cal-appt-chip').forEach(item =>
+      item.classList.toggle('chip-selected', item === chip)
+    );
+    setAppointmentDetails(chip.dataset);
+  });
+
+  document.querySelectorAll('.table-record-row').forEach(row => {
+    row.addEventListener('click', event => {
+      if (event.target.closest('a') || event.target.closest('button')) return;
+      document.querySelectorAll('.table-record-row').forEach(item => {
+        item.style.backgroundColor = '';
+      });
+      row.style.backgroundColor = 'rgba(46, 104, 219, 0.08)';
+      selectedAppointmentId = row.dataset.id;
+      weekStart = startOfWeek(parseLocalDate(row.dataset.dateIso));
+      renderCalendar(selectedAppointmentId);
+      setAppointmentDetails(row.dataset);
+    });
+  });
+
+  document.getElementById('detailCheckInBtn').addEventListener('click', function() {
+    const badge = document.getElementById('detailStatusBadge');
+    badge.textContent = 'Checked In';
+    badge.className = 'nm-badge badge-green';
+    this.innerHTML = '<i class="bi bi-check2"></i> Checked In';
+  });
+
+  renderCalendar();
+</script>
+{% endblock %}

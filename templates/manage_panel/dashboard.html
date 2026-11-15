@@ -1,0 +1,326 @@
+{% extends 'app_base.html' %}
+{% load clinic_extras static %}
+
+{% block head_extra %}
+<link href="{% static 'css/pages/manage_panel/dashboard.css' %}?v=1" rel="stylesheet">
+{% endblock %}
+
+{% block page_title %}Admin Console{% endblock %}
+{% block page_subtitle %}Full control over your clinic{% endblock %}
+
+{% block app_content %}
+<!-- Main Header with Segmented Period Switcher -->
+<div class="nm-header">
+  <div>
+    <h1 class="nm-title">Dashboard</h1>
+    <div class="nm-subtitle">Full control over your clinic</div>
+  </div>
+  <div class="nm-segmented">
+    <button class="nm-segment-item" type="button">Day</button>
+    <button class="nm-segment-item" type="button">Week</button>
+    <button class="nm-segment-item active" type="button">Month</button>
+    <button class="nm-segment-item" type="button">Year</button>
+  </div>
+</div>
+
+<!-- 4 KPI Stat Cards -->
+<div class="row g-4 mb-4">
+  <!-- Total Patients -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="nm-card nm-kpi">
+      <div class="nm-kpi-header">
+        <div class="nm-kpi-icon icon-blue">
+          <i class="bi bi-people"></i>
+        </div>
+        <span class="nm-badge badge-green">
+          <i class="bi bi-arrow-up"></i> active
+        </span>
+      </div>
+      <div>
+        <div class="nm-kpi-label">Total Patients</div>
+        <div class="nm-kpi-val">{{ kpis.total_patients }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Appointments -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="nm-card nm-kpi">
+      <div class="nm-kpi-header">
+        <div class="nm-kpi-icon icon-teal">
+          <i class="bi bi-calendar2-week"></i>
+        </div>
+        <span class="nm-badge badge-blue">
+          {{ kpis.appointments_today }} today
+        </span>
+      </div>
+      <div>
+        <div class="nm-kpi-label">Appointments</div>
+        <div class="nm-kpi-val">{{ kpis.total_appointments }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revenue -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="nm-card nm-kpi">
+      <div class="nm-kpi-header">
+        <div class="nm-kpi-icon icon-purple">
+          <i class="bi bi-camera"></i>
+        </div>
+        <span class="nm-badge badge-red">
+          {{ kpis.outstanding|currency }} due
+        </span>
+      </div>
+      <div>
+        <div class="nm-kpi-label">Revenue</div>
+        <div class="nm-kpi-val">{{ kpis.total_revenue|currency }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Treatments -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="nm-card nm-kpi">
+      <div class="nm-kpi-header">
+        <div class="nm-kpi-icon icon-amber">
+          <i class="bi bi-clipboard2-check"></i>
+        </div>
+        <span class="nm-badge badge-neutral">
+          {{ kpis.total_dentists }} dentists
+        </span>
+      </div>
+      <div>
+        <div class="nm-kpi-label">Treatments</div>
+        <div class="nm-kpi-val">{{ kpis.total_treatments }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 2: Revenue Trend & Patient Growth -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="nm-card">
+      <div class="nm-widget-header">
+        <div>
+          <h6 class="nm-widget-title">Revenue Trend</h6>
+          <div class="nm-widget-subtitle">Monthly revenue · Dec 2025 – Nov 2026</div>
+        </div>
+        <a href="{% url 'manage_panel:reports' %}" class="nm-widget-link">Last 12 months</a>
+      </div>
+      <div style="height:250px;">
+        <canvas id="revChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="nm-card">
+      <div class="nm-widget-header">
+        <div>
+          <h6 class="nm-widget-title">Patient Growth</h6>
+          <div class="nm-widget-subtitle">New patients over time</div>
+        </div>
+      </div>
+      <div style="height:250px;">
+        <canvas id="growthChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 3: Appointment Status, Treatment Mix, Appointments / Month -->
+<div class="row g-4 mb-4">
+  <!-- Appointment Status Donut -->
+  <div class="col-lg-4">
+    <div class="nm-card h-100">
+      <div class="nm-widget-header">
+        <h6 class="nm-widget-title">Appointment Status</h6>
+      </div>
+      <div class="nm-donut-wrap">
+        <div class="nm-donut-box">
+          <canvas id="statusChart"></canvas>
+          <div class="nm-donut-center">
+            <div class="nm-donut-num">{{ kpis.total_appointments }}</div>
+            <div class="nm-donut-lbl">Appointment{% if kpis.total_appointments != 1 %}s{% endif %}</div>
+          </div>
+        </div>
+        <div class="nm-donut-info">
+          <div class="nm-donut-info-lbl">Appointments</div>
+          <div class="nm-donut-info-total">{{ kpis.total_appointments }} total</div>
+          <div>
+            <span class="nm-badge badge-blue">{{ kpis.appointments_today }} today</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Treatment Mix -->
+  <div class="col-lg-4">
+    <div class="nm-card h-100">
+      <div class="nm-widget-header">
+        <h6 class="nm-widget-title">Treatment Mix</h6>
+      </div>
+      {% if kpis.total_treatments > 0 %}
+        <div style="height:190px;"><canvas id="treatChart"></canvas></div>
+      {% else %}
+        <div class="nm-empty-treatment">
+          <div class="nm-empty-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2C8.5 2 6 4.5 6 8c0 3.5 1.5 8 2.5 11 .8 2.4 2.2 3 3.5 3s2.7-.6 3.5-3c1-3 2.5-7.5 2.5-11 0-3.5-2.5-6-6-6z"/>
+              <path d="M9.5 9c1 1 4 1 5 0"/>
+            </svg>
+          </div>
+          <div class="nm-empty-title">No treatments recorded</div>
+          <div class="nm-empty-desc">Your treatment mix will appear here.</div>
+          <div class="nm-empty-meta">{{ kpis.total_treatments }} treatments · {{ kpis.total_dentists }} dentists</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Appointments / Month -->
+  <div class="col-lg-4">
+    <div class="nm-card h-100">
+      <div class="nm-widget-header">
+        <h6 class="nm-widget-title">Appointments / Month</h6>
+      </div>
+      <div style="height:190px;">
+        <canvas id="apptsChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Collapsible Management & Activity Console -->
+<div class="accordion mb-4" id="adminToolsAccordion">
+  <div class="nm-card p-0 overflow-hidden">
+    <div class="p-3 d-flex align-items-center justify-content-between" style="cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#adminToolsCollapse" aria-expanded="true">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-sliders text-primary fs-5"></i>
+        <h6 class="fw-bold mb-0 text-slate">Clinic Management & Recent Records</h6>
+      </div>
+      <i class="bi bi-chevron-down text-muted"></i>
+    </div>
+    
+    <div id="adminToolsCollapse" class="collapse show border-top p-4" style="border-color: rgba(195, 207, 222, 0.4) !important;">
+      <!-- Quick Actions Grid -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <a href="{% url 'manage_panel:user_list' %}" class="nm-card d-block text-decoration-none text-center p-3">
+            <div class="nm-kpi-icon icon-blue mx-auto mb-2"><i class="bi bi-people"></i></div>
+            <div class="fw-bold text-dark small">Users & Roles</div>
+            <div class="text-muted" style="font-size:.7rem;">Manage Staff</div>
+          </a>
+        </div>
+        <div class="col-6 col-md-3">
+          <a href="{% url 'manage_panel:resource_list' slug='services' %}" class="nm-card d-block text-decoration-none text-center p-3">
+            <div class="nm-kpi-icon icon-teal mx-auto mb-2"><i class="bi bi-clipboard2-pulse"></i></div>
+            <div class="fw-bold text-dark small">Dental Services</div>
+            <div class="text-muted" style="font-size:.7rem;">Pricing & Catalog</div>
+          </a>
+        </div>
+        <div class="col-6 col-md-3">
+          <a href="{% url 'manage_panel:resource_list' slug='inventory' %}" class="nm-card d-block text-decoration-none text-center p-3">
+            <div class="nm-kpi-icon icon-purple mx-auto mb-2"><i class="bi bi-box-seam"></i></div>
+            <div class="fw-bold text-dark small">Supplies & Stock</div>
+            <div class="text-muted" style="font-size:.7rem;">Inventory Items</div>
+          </a>
+        </div>
+        <div class="col-6 col-md-3">
+          <a href="{% url 'manage_panel:reports' %}" class="nm-card d-block text-decoration-none text-center p-3">
+            <div class="nm-kpi-icon icon-amber mx-auto mb-2"><i class="bi bi-graph-up"></i></div>
+            <div class="fw-bold text-dark small">Reports</div>
+            <div class="text-muted" style="font-size:.7rem;">Detailed Analytics</div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Recent Tables -->
+      <div class="row g-4">
+        <div class="col-lg-7">
+          <div class="nm-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history me-1 text-primary"></i> Recent Appointments</h6>
+              <a href="{% url 'clinic:appointment_list' %}" class="btn-soft">View All</a>
+            </div>
+            <table class="table-app">
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Dentist</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in recent_appointments %}
+                <tr>
+                  <td class="fw-bold">{{ a.patient.display_name }}</td>
+                  <td>{% if a.dentist %}Dr. {{ a.dentist.display_name }}{% else %}—{% endif %}</td>
+                  <td>{{ a.date|date:"d M Y" }}</td>
+                  <td><span class="nm-badge badge-blue">{{ a.get_status_display }}</span></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-muted text-center py-3">No appointments found.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="nm-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-receipt me-1 text-primary"></i> Recent Invoices</h6>
+              <a href="{% url 'clinic:invoice_list' %}" class="btn-soft">View All</a>
+            </div>
+            {% for inv in recent_invoices %}
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="border-color: rgba(195, 207, 222, 0.3) !important;">
+              <div>
+                <div class="fw-bold small">{{ inv.number }}</div>
+                <div class="text-muted" style="font-size:.75rem;">{{ inv.patient.display_name }}</div>
+              </div>
+              <div class="text-end">
+                <div class="fw-bold">{{ inv.total|currency }}</div>
+                <span class="nm-badge {% if inv.status == 'paid' %}badge-green{% else %}badge-red{% endif %}">{{ inv.get_status_display }}</span>
+              </div>
+            </div>
+            {% empty %}
+            <p class="text-muted small py-3 text-center">No invoices yet.</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overview Footer Strip (as shown in image) -->
+<div class="nm-footer mb-4">
+  <div>AimSmile · Clinic overview</div>
+  <div>Dec 2025 – Nov 2026</div>
+</div>
+
+
+<!-- Raw Chart Data Scripts -->
+<script id="revData" type="application/json">{{ revenue_json|safe }}</script>
+<script id="growthData" type="application/json">{{ growth_json|safe }}</script>
+<script id="statusData" type="application/json">{{ status_json|safe }}</script>
+<script id="treatData" type="application/json">{{ treatment_json|safe }}</script>
+<script id="apptsData" type="application/json">{{ appts_month_json|safe }}</script>
+{% endblock %}
+
+{% block app_scripts %}
+<script>
+  lineChart('revChart', 'revData', 'Revenue');
+  lineChart('growthChart', 'growthData', 'Patients');
+  doughnutChart('statusChart', 'statusData');
+  {% if kpis.total_treatments > 0 %}
+  doughnutChart('treatChart', 'treatData');
+  {% endif %}
+  barChart('apptsChart', 'apptsData', 'Appointments');
+</script>
+{% endblock %}
